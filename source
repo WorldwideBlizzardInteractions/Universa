@@ -1,0 +1,201 @@
+-- Load Fluent GUI
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- Create GUI Window
+local UniversaGui = Fluent:Window("Universa", "Zombie Rush GUI", Enum.KeyCode.RightShift)
+
+-- Environment Variables
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local camera = workspace.CurrentCamera
+
+-- Settings
+getgenv().AimbotEnabled = false
+getgenv().SilentAimEnabled = false
+getgenv().SpamEnabled = false
+getgenv().WalkSpeed = 16
+getgenv().NoclipEnabled = false
+getgenv().SpinbotEnabled = false
+getgenv().SpinSpeed = 10
+getgenv().KillAuraEnabled = false
+getgenv().AuraRange = 10
+
+-- Update WalkSpeed Function
+local function UpdateWalkSpeed(speed)
+    if humanoid then
+        humanoid.WalkSpeed = speed
+    end
+end
+
+-- Noclip Functionality
+local function Noclip()
+    while getgenv().NoclipEnabled do
+        task.wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end
+
+-- Spinbot Functionality
+local function Spinbot()
+    while getgenv().SpinbotEnabled do
+        task.wait(0.1)
+        if character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(getgenv().SpinSpeed), 0)
+        end
+    end
+end
+
+-- Aimbot Functionality
+local function Aimbot()
+    local zombieStorage = workspace:WaitForChild("Zombie Storage")
+
+    while getgenv().AimbotEnabled do
+        task.wait(0.1)
+        local closestZombie = nil
+        local shortestDistance = 100
+
+        for _, zombie in pairs(zombieStorage:GetChildren()) do
+            if zombie:FindFirstChild("Head") then
+                local distance = (zombie.Head.Position - character.Head.Position).Magnitude
+                if distance < shortestDistance and distance < 100 then
+                    shortestDistance = distance
+                    closestZombie = zombie
+                end
+            end
+        end
+
+        if closestZombie then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, closestZombie.Head.Position)
+        end
+    end
+end
+
+-- Silent Aim using Raycast
+local function SilentAim()
+    local zombieStorage = workspace:WaitForChild("Zombie Storage")
+
+    while getgenv().SilentAimEnabled do
+        task.wait(0.1)
+        for _, zombie in pairs(zombieStorage:GetChildren()) do
+            if zombie:FindFirstChild("Head") then
+                local rayParams = RaycastParams.new()
+                rayParams.FilterType = Enum.RaycastFilterType.Whitelist
+                rayParams.FilterDescendantsInstances = {zombie}
+
+                local direction = (zombie.Head.Position - camera.CFrame.Position).unit * 100
+                local rayResult = workspace:Raycast(camera.CFrame.Position, direction, rayParams)
+
+                if rayResult and rayResult.Instance == zombie.Head then
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, zombie.Head.Position)
+                end
+            end
+        end
+    end
+end
+
+-- Spam Functionality
+local messages = {
+    "Universa GUI Was Here",
+    "RobloxDeveloperWare Made This GUI",
+    "nullsyna was here!!!"
+}
+
+local function Spam()
+    while getgenv().SpamEnabled do
+        task.wait(2)
+        local selectedMessage = messages[math.random(1, #messages)]
+        game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(selectedMessage, "All")
+    end
+end
+
+-- KillAura Functionality
+local function KillAura()
+    local zombieStorage = workspace:WaitForChild("Zombie Storage")
+
+    while getgenv().KillAuraEnabled do
+        task.wait(0.1)
+        for _, zombie in pairs(zombieStorage:GetChildren()) do
+            if zombie:FindFirstChild("Humanoid") and (zombie.PrimaryPart.Position - character.PrimaryPart.Position).Magnitude <= getgenv().AuraRange then
+                zombie.Humanoid.Health = 0 -- Kill the zombie
+            end
+        end
+    end
+end
+
+-- GUI Tabs with Stars
+local function createTab(title, callback)
+    return UniversaGui:Tab(title .. " ★", callback)
+end
+
+-- Aimbot Tab
+createTab("Aimbot", function(state)
+    getgenv().AimbotEnabled = state
+    if state then
+        Aimbot()
+    end
+end)
+
+-- Silent Aim Tab
+createTab("Silent Aim", function(state)
+    getgenv().SilentAimEnabled = state
+    if state then
+        SilentAim()
+    end
+end)
+
+-- Spam Tab
+createTab("Spam", function(state)
+    getgenv().SpamEnabled = state
+    if state then
+        Spam()
+    end
+end)
+
+-- WalkSpeed Tab
+createTab("WalkSpeed", function(value)
+    local speed = tonumber(value) or 16
+    getgenv().WalkSpeed = speed
+    UpdateWalkSpeed(speed)
+end)
+
+-- Noclip Tab
+createTab("Noclip", function(state)
+    getgenv().NoclipEnabled = state
+    if state then
+        Noclip()
+    end
+end)
+
+-- Spinbot Tab
+createTab("Spinbot", function(value)
+    getgenv().SpinSpeed = tonumber(value) or 10
+    getgenv().SpinbotEnabled = value > 0
+    if getgenv().SpinbotEnabled then
+        Spinbot()
+    end
+end)
+
+-- KillAura Tab
+createTab("KillAura", function(value)
+    getgenv().AuraRange = tonumber(value) or 10
+    getgenv().KillAuraEnabled = value > 0
+    if getgenv().KillAuraEnabled then
+        KillAura()
+    end
+end)
+
+-- Credits Tab
+createTab("Credits", function()
+    return "Discord: nullsyna"
+end)
+
+-- Initial Setup
+UpdateWalkSpeed(getgenv().WalkSpeed)
+
+-- Display Completion Message
+print("Universa GUI loaded successfully!")
